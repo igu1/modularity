@@ -159,11 +159,6 @@ logs/
 .temp/
 tmp/
 
-# Exclude all modules except base
-src/modular_system/modules/contacts/
-src/modular_system/modules/products/
-src/modular_system/modules/messaging_demo/
-
 # Exclude tests
 tests/
 **/tests/
@@ -188,3 +183,4 @@ create_module.sh
 .env.local
 .env.production
 config.local.py
+**/modules

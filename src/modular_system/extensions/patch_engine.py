@@ -164,7 +164,12 @@ class PatchEngine:
     
     def _apply_field_patch(self, patch: FieldPatch, module_instance: Any):
         """Apply a field patch."""
-        if hasattr(module_instance, patch.model_name):
+        # Try to find the model in the models package first
+        if hasattr(module_instance, 'models') and hasattr(module_instance.models, patch.model_name):
+            model = getattr(module_instance.models, patch.model_name)
+            setattr(model, patch.field_name, patch.new_field)
+        # Fallback to direct module instance
+        elif hasattr(module_instance, patch.model_name):
             model = getattr(module_instance, patch.model_name)
             setattr(model, patch.field_name, patch.new_field)
     

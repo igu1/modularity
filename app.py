@@ -64,17 +64,17 @@ def main() -> None:
     
     system = ModularSystem(config.__dict__)
     
-    default_modules = ['base']
+    default_modules = ['base', 'contact', 'product']
     for module_name in default_modules:
         try:
             if system.load_module(module_name):
                 print(f"✓ Loaded module: {module_name}")
             else:
                 print(f"✗ Failed to load module: {module_name}")
-                sys.exit(1)  # Exit if base module fails to load
+                sys.exit(1)
         except Exception as e:
             print(f"✗ Error loading module {module_name}: {e}")
-            sys.exit(1)  # Exit if base module fails to load
+            sys.exit(1)
     
     system.load_manifest()
     

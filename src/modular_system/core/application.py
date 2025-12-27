@@ -163,6 +163,14 @@ class ModularSystem:
             if os.path.exists(extensions_dir):
                 self.patch_engine.load_patches_from_directory(extensions_dir)
             
+            # Load patches from module directories
+            modules_dir = os.path.join(os.path.dirname(__file__), '..', 'modules')
+            if os.path.exists(modules_dir):
+                for module_name in os.listdir(modules_dir):
+                    module_patches_dir = os.path.join(modules_dir, module_name, 'patches')
+                    if os.path.exists(module_patches_dir):
+                        self.patch_engine.load_patches_from_directory(module_patches_dir)
+            
             # Register hook for applying patches to modules
             def apply_patches_hook(module_name: str, module_instance: Any, env: Any):
                 if self.patch_engine:
