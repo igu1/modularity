@@ -1,36 +1,36 @@
-"""API views for the base module (JSON responses)."""
+                                                     
 
 import json
 from typing import Any
 
 
 class APIViews:
-    """API view handlers for base module."""
+                                            
     
     def __init__(self, module):
-        """
-        Initialize API views.
-        
-        Args:
-            module: Reference to the base module
-        """
+\
+\
+\
+\
+\
+           
         self.module = module
         self.logger = module.logger
     
     def health_api(self, environ: dict, start_response: Any, module_instance: Any):
-        """
-        Return system health status as JSON.
-        
-        Args:
-            environ: WSGI environment dictionary
-            start_response: WSGI start response callable
-            module_instance: Module instance
-            
-        Returns:
-            Response body as list of bytes
-        """
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+           
         try:
-            # Check database connection
+                                       
             db_status = "connected"
             try:
                 from modular_system.database.connection import get_engine
@@ -63,17 +63,17 @@ class APIViews:
             return self._json_response(error_data, start_response, '500 Internal Server Error')
     
     def status_api(self, environ: dict, start_response: Any, module_instance: Any):
-        """
-        Return detailed system status as JSON.
-        
-        Args:
-            environ: WSGI environment dictionary
-            start_response: WSGI start response callable
-            module_instance: Module instance
-            
-        Returns:
-            Response body as list of bytes
-        """
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+           
         try:
             status_data = self.module.get_system_status()
             
@@ -104,17 +104,17 @@ class APIViews:
             return self._json_response(error_data, start_response, '500 Internal Server Error')
     
     def _json_response(self, data: dict, start_response: Any, status: str = '200 OK'):
-        """
-        Helper to return JSON response.
-        
-        Args:
-            data: Data to serialize as JSON
-            start_response: WSGI start response callable
-            status: HTTP status code
-            
-        Returns:
-            Response body as list of bytes
-        """
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+           
         body = json.dumps(data, indent=2).encode('utf-8')
         start_response(status, [
             ('Content-Type', 'application/json'),

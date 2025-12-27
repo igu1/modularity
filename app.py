@@ -1,36 +1,8 @@
-"""
-Main entry point for the modular system application.
-
-This module provides the primary entry point for running the modular system.
-It handles configuration loading, module initialization, and server startup.
-
-Only the base module is loaded by default, which provides core functionality
-including database connections and basic web endpoints.
-
-Usage:
-    python app.py
-
-The application will:
-    1. Load configuration from config.json or environment variables
-    2. Validate the configuration
-    3. Initialize the modular system
-    4. Load the base module
-    5. Start the web server
-
-Environment Variables:
-    DATABASE_URL: Database connection string
-    SERVER_HOST: Server host address (default: localhost)
-    SERVER_PORT: Server port (default: 8080)
-    SERVER_DEBUG: Enable debug mode (default: False)
-    LOG_LEVEL: Logging level (default: INFO)
-    SECRET_KEY: Secret key for security
-"""
 
 import sys
 import os
 from typing import Dict, Any
 
-# Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from modular_system import ModularSystem
@@ -38,18 +10,6 @@ from config.settings import get_config_manager, is_debug_mode
 
 
 def main() -> None:
-    """
-    Main entry point for the application.
-    
-    This function orchestrates the entire application startup process:
-    1. Loads and validates configuration
-    2. Initializes the modular system
-    3. Loads the base module
-    4. Starts the web server
-    
-    Raises:
-        SystemExit: If configuration validation fails or server encounters an error
-    """
     config_manager = get_config_manager()
     config = config_manager.config
     

@@ -1,4 +1,4 @@
-"""Web layer components."""
+                           
 
 from .routing import Router, Route
 from .middleware import MiddlewareManager, CORSMiddleware, AuthMiddleware

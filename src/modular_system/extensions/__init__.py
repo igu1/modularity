@@ -1,4 +1,4 @@
-"""Extension system components."""
+                                  
 
 from .patch_engine import PatchEngine
 from .patch_types import (

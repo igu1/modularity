@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
-"""
-Module Creation Script
-
-This script creates new modules following the standardized modular system structure.
-"""
+                      
+\
+\
+\
+\
+   
 
 import os
 import sys
@@ -12,14 +12,14 @@ from datetime import datetime
 
 
 def create_module_structure(module_name, author="Modular System Team", description=""):
-    """
-    Create the complete directory structure for a new module.
-    
-    Args:
-        module_name: Name of the module to create
-        author: Author name for the module
-        description: Description of the module
-    """
+\
+\
+\
+\
+\
+\
+\
+       
     base_path = "src/modular_system/modules"
     module_path = os.path.join(base_path, module_name)
     
@@ -29,7 +29,7 @@ def create_module_structure(module_name, author="Modular System Team", descripti
     
     print(f"🚀 Creating module: {module_name}")
     
-    # Create main directory structure
+                                     
     directories = [
         "models",
         "views", 
@@ -48,7 +48,7 @@ def create_module_structure(module_name, author="Modular System Team", descripti
         dir_path = os.path.join(module_path, directory)
         os.makedirs(dir_path, exist_ok=True)
         
-        # Create __init__.py files for Python packages
+                                                      
         init_file = os.path.join(dir_path, "__init__.py")
         with open(init_file, 'w') as f:
             if directory == "views":
@@ -66,27 +66,27 @@ def create_module_structure(module_name, author="Modular System Team", descripti
             else:
                 f.write("")
     
-    # Create main module __init__.py
+                                    
     print("✅ Creating module entry point...")
     create_module_init(module_path, module_name, author, description)
     
-    # Create model template
+                           
     print("✅ Creating model template...")
     create_model_template(module_path, module_name)
     
-    # Create view templates
+                           
     print("✅ Creating view templates...")
     create_view_templates(module_path, module_name)
     
-    # Create route templates  
+                              
     print("✅ Creating route templates...")
     create_route_templates(module_path, module_name)
     
-    # Create service template
+                             
     print("✅ Creating service template...")
     create_service_template(module_path, module_name)
     
-    # Create README template
+                            
     print("✅ Creating README template...")
     create_readme_template(module_path, module_name, author, description)
     
@@ -101,7 +101,7 @@ def create_module_structure(module_name, author="Modular System Team", descripti
 
 
 def create_module_init(module_path, module_name, author, description):
-    """Create the main module __init__.py file."""
+                                                  
     class_name = f"{module_name.title().replace('_', '')}Module"
     
     content = f'''from typing import Dict, Any, List, Optional
@@ -222,10 +222,10 @@ __description__ = "{description}"
 
 
 def create_model_template(module_path, module_name):
-    """Create model template files."""
+                                      
     model_name = module_name.title().replace('_', '')
     
-    # Main model file
+                     
     content = f'''from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
@@ -294,10 +294,10 @@ class {model_name}Model(DatabaseModel):
 
 
 def create_view_templates(module_path, module_name):
-    """Create view template files."""
+                                     
     class_name = module_name.title().replace('_', '')
     
-    # Web views
+               
     web_content = f'''from typing import Any
 
 
@@ -409,7 +409,7 @@ class WebViews:
     with open(web_file, 'w') as f:
         f.write(web_content)
     
-    # API views
+               
     api_content = f'''from typing import Any
 import json
 
@@ -453,7 +453,7 @@ class APIViews:
 
 
 def create_route_templates(module_path, module_name):
-    """Create route template files."""
+                                      
     route_content = f'''def get_routes(module):
     """
     Get all routes for the {module_name} module.
@@ -478,14 +478,14 @@ def create_route_templates(module_path, module_name):
     with open(web_route_file, 'w') as f:
         f.write(route_content)
     
-    # API routes can be the same for now
+                                        
     api_route_file = os.path.join(module_path, "routes", "api.py")
     with open(api_route_file, 'w') as f:
         f.write(route_content)
 
 
 def create_service_template(module_path, module_name):
-    """Create service template files."""
+                                        
     class_name = module_name.title().replace('_', '')
     
     service_content = f'''from typing import List, Optional, Dict, Any
@@ -621,7 +621,7 @@ class {module_name.title().replace('_', '')}Service:
 
 
 def create_readme_template(module_path, module_name, author, description):
-    """Create README template for the module."""
+                                                
     content = f'''# {module_name.title().replace('_', '')} Module
 
 {description}
@@ -705,7 +705,7 @@ item_id = service.create(new_item)
 
 
 def main():
-    """Main function to handle command line arguments."""
+                                                         
     parser = argparse.ArgumentParser(description="Create a new module for the modular system")
     parser.add_argument("name", help="Name of the module to create")
     parser.add_argument("--author", default="Modular System Team", help="Author of the module")
@@ -713,12 +713,12 @@ def main():
     
     args = parser.parse_args()
     
-    # Validate module name
+                          
     if not args.name.isidentifier() or not args.name.replace('_', '').isalnum():
         print("❌ Invalid module name. Use letters, numbers, and underscores only.")
         sys.exit(1)
     
-    # Create the module
+                       
     success = create_module_structure(args.name, args.author, args.description)
     
     if success:

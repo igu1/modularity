@@ -1,9 +1,9 @@
-"""Setup script for the modular system."""
+                                          
 
 from setuptools import setup, find_packages
 import os
 
-# Read the README file
+                      
 def read_readme():
     readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
     if os.path.exists(readme_path):
@@ -11,7 +11,7 @@ def read_readme():
             return f.read()
     return "Modular System - A flexible, extensible web framework"
 
-# Read requirements
+                   
 def read_requirements():
     requirements_path = os.path.join(os.path.dirname(__file__), 'requirements.txt')
     requirements = []

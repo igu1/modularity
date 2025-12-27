@@ -1,9 +1,9 @@
-"""
-Modular System - A flexible, extensible web framework.
-
-A production-ready modular architecture for building scalable web applications
-with pluggable modules, services, and extensions.
-"""
+\
+\
+\
+\
+\
+   
 
 __version__ = "1.0.0"
 __author__ = "Modular System Team"

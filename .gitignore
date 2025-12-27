@@ -183,4 +183,4 @@ create_module.sh
 .env.local
 .env.production
 config.local.py
-**/modules
+**/modules/

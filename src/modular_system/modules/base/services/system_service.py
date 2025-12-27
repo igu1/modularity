@@ -1,4 +1,4 @@
-"""System service - Core business logic for base module."""
+                                                           
 
 from typing import Dict, Any
 from datetime import datetime
@@ -6,33 +6,33 @@ import time
 
 
 class SystemService:
-    """
-    Service class for system-related business logic.
-    
-    This service handles system status, health checks, and monitoring
-    functionality for the base module.
-    """
+\
+\
+\
+\
+\
+       
     
     def __init__(self, module):
-        """
-        Initialize system service.
-        
-        Args:
-            module: Reference to the base module
-        """
+\
+\
+\
+\
+\
+           
         self.module = module
         self.logger = module.logger
         self.start_time = time.time()
     
     def get_system_status(self) -> Dict[str, Any]:
-        """
-        Get comprehensive system status.
-        
-        Returns:
-            Dictionary containing system status information
-        """
+\
+\
+\
+\
+\
+           
         try:
-            # Get registry information
+                                      
             registry = getattr(self.module.env, '_registry', None)
             
             loaded_modules = []
@@ -42,13 +42,13 @@ class SystemService:
                 loaded_modules = list(registry.modules.keys())
                 total_routes = len(registry.routes)
             
-            # Get extensions information
+                                        
             patch_engine = getattr(self.module.env, '_patch_engine', None)
             extensions_count = 0
             if patch_engine:
                 extensions_count = len(patch_engine.applied_patches)
             
-            # Check database status
+                                   
             db_status = self._check_database_status()
             
             return {
@@ -70,34 +70,34 @@ class SystemService:
             }
     
     def check_health(self) -> Dict[str, Any]:
-        """
-        Perform comprehensive health check.
-        
-        Returns:
-            Dictionary containing health check results
-        """
+\
+\
+\
+\
+\
+           
         health_status = {
             'overall': 'healthy',
             'checks': {},
             'timestamp': str(datetime.now())
         }
         
-        # Check database
+                        
         db_check = self._check_database_status()
         health_status['checks']['database'] = {
             'status': 'healthy' if db_check == 'connected' else 'unhealthy',
             'details': db_check
         }
         
-        # Check modules
+                       
         modules_check = self._check_modules_status()
         health_status['checks']['modules'] = modules_check
         
-        # Check memory
+                      
         memory_check = self._check_memory_status()
         health_status['checks']['memory'] = memory_check
         
-        # Determine overall status
+                                  
         for check_name, check_result in health_status['checks'].items():
             if check_result.get('status') == 'unhealthy':
                 health_status['overall'] = 'unhealthy'
@@ -106,12 +106,12 @@ class SystemService:
         return health_status
     
     def _check_database_status(self) -> str:
-        """
-        Check database connection status.
-        
-        Returns:
-            Database status string
-        """
+\
+\
+\
+\
+\
+           
         try:
             from modular_system.database.connection import get_engine
             engine = get_engine()
@@ -123,12 +123,12 @@ class SystemService:
             return "disconnected"
     
     def _check_modules_status(self) -> Dict[str, Any]:
-        """
-        Check status of loaded modules.
-        
-        Returns:
-            Dictionary containing module status
-        """
+\
+\
+\
+\
+\
+           
         try:
             registry = getattr(self.module.env, '_registry', None)
             
@@ -159,12 +159,12 @@ class SystemService:
             }
     
     def _check_memory_status(self) -> Dict[str, Any]:
-        """
-        Check memory usage status.
-        
-        Returns:
-            Dictionary containing memory status
-        """
+\
+\
+\
+\
+\
+           
         try:
             import psutil
             process = psutil.Process()
@@ -188,12 +188,12 @@ class SystemService:
             }
     
     def _get_uptime(self) -> str:
-        """
-        Get system uptime.
-        
-        Returns:
-            Formatted uptime string
-        """
+\
+\
+\
+\
+\
+           
         uptime_seconds = int(time.time() - self.start_time)
         
         hours = uptime_seconds // 3600
@@ -208,12 +208,12 @@ class SystemService:
             return f"{seconds}s"
     
     def _get_memory_usage(self) -> Dict[str, Any]:
-        """
-        Get memory usage information.
-        
-        Returns:
-            Dictionary containing memory info
-        """
+\
+\
+\
+\
+\
+           
         try:
             import psutil
             process = psutil.Process()
@@ -230,11 +230,11 @@ class SystemService:
             return {'error': str(e)}
     
     def _get_python_version(self) -> str:
-        """
-        Get Python version.
-        
-        Returns:
-            Python version string
-        """
+\
+\
+\
+\
+\
+           
         import sys
         return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
