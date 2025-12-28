@@ -1,17 +1,11 @@
-                                          
-
 from setuptools import setup, find_packages
 import os
-
-                      
 def read_readme():
     readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
     if os.path.exists(readme_path):
         with open(readme_path, 'r', encoding='utf-8') as f:
             return f.read()
     return "Modular System - A flexible, extensible web framework"
-
-                   
 def read_requirements():
     requirements_path = os.path.join(os.path.dirname(__file__), 'requirements.txt')
     requirements = []
@@ -22,7 +16,6 @@ def read_requirements():
                 if line and not line.startswith('#') and not line.startswith('-'):
                     requirements.append(line)
     return requirements
-
 setup(
     name="modular-system",
     version="1.0.0",

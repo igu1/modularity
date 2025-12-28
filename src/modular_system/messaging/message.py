@@ -1,17 +1,12 @@
 from typing import Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
-
-
 class MessageType(Enum):
     EVENT = "event"
     REQUEST = "request"
     RESPONSE = "response"
     NOTIFICATION = "notification"
-
-
 class Message:
-    
     def __init__(
         self,
         message_type: MessageType,
@@ -29,7 +24,6 @@ class Message:
         self.correlation_id = correlation_id or f"{source_module}_{datetime.now().timestamp()}"
         self.timestamp = datetime.now()
         self.processed = False
-    
     def to_dict(self) -> Dict[str, Any]:
         return {
             'message_type': self.message_type.value,
@@ -41,6 +35,5 @@ class Message:
             'timestamp': str(self.timestamp),
             'processed': self.processed
         }
-    
     def __repr__(self) -> str:
         return f"<Message({self.message_type.value}, {self.topic}, from={self.source_module})>"

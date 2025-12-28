@@ -1,18 +1,12 @@
-
 import sys
 import os
 from typing import Dict, Any
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-
 from modular_system import ModularSystem
 from config.settings import get_config_manager, is_debug_mode
-
-
 def main() -> None:
     config_manager = get_config_manager()
     config = config_manager.config
-    
     errors = config_manager.validate_config()
     if errors:
         print("Configuration errors found:")
@@ -21,9 +15,7 @@ def main() -> None:
             for error in section_errors:
                 print(f"    - {error}")
         sys.exit(1)
-    
     system = ModularSystem(config.__dict__)
-    
     default_modules = ['base', 'contact', 'product']
     for module_name in default_modules:
         try:
@@ -35,21 +27,17 @@ def main() -> None:
         except Exception as e:
             print(f"✗ Error loading module {module_name}: {e}")
             sys.exit(1)
-    
     system.load_manifest()
-    
     status = system.get_status()
     print(f"\nSystem Status:")
     print(f"  Loaded modules: {status['registry']['loaded_modules']}")
     print(f"  Services: {status['registry']['services']}")
     print(f"  Routes: {status['registry']['routes']}")
     print(f"  Extensions: {status['extensions']['total_patches']}")
-    
     print(f"\nStarting server on {config.server.host}:{config.server.port}")
     print(f"Debug mode: {config.server.debug}")
     print(f"Log level: {config.logging.level}")
     print(f"Database: {config.database.url}")
-    
     try:
         system.run(
             host=config.server.host,
@@ -61,7 +49,5 @@ def main() -> None:
     except Exception as e:
         print(f"Server error: {e}")
         sys.exit(1)
-
-
 if __name__ == "__main__":
     main()

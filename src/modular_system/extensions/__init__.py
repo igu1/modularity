@@ -1,5 +1,3 @@
-                                  
-
 from .patch_engine import PatchEngine
 from .patch_types import (
     Patch, 
@@ -9,7 +7,6 @@ from .patch_types import (
     FieldPatch, 
     RoutePatch
 )
-
 __all__ = [
     "PatchEngine",
     "Patch",
