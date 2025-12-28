@@ -1,76 +1,19 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from ..models.organization import OrganizationModel
 
 class OrganizationService:
-    def __init__(self, module):
-        self.module = module
-        self.logger = module.logger
-
-    def get_all(self) -> List[OrganizationModel]:
-        try:
-            return [OrganizationModel(**data) for data in OrganizationModel.all()]
-        except Exception as e:
-            self.logger.log("base", f"Error getting all organizations: {e}", "error")
-            return []
-
-    def get_by_id(self, item_id: int) -> Optional[OrganizationModel]:
-        try:
-            data = OrganizationModel.get(item_id)
-            return OrganizationModel(**data) if data else None
-        except Exception as e:
-            self.logger.log("base", f"Error getting organization by ID: {e}", "error")
-            return None
-
+    def __init__(self, mod): self.mod = mod
+    def get_all(self) -> List[OrganizationModel]: return [OrganizationModel(**d) for d in OrganizationModel.all()]
+    def get_by_id(self, rid: int) -> Optional[OrganizationModel]:
+        d = OrganizationModel.get(rid)
+        return OrganizationModel(**d) if d else None
     def get_by_slug(self, slug: str) -> Optional[OrganizationModel]:
-        try:
-            data = OrganizationModel.get_by(slug=slug)
-            return OrganizationModel(**data) if data else None
-        except Exception as e:
-            self.logger.log("base", f"Error getting organization by slug: {e}", "error")
-            return None
-
+        d = OrganizationModel.get_by(slug=slug)
+        return OrganizationModel(**d) if d else None
     def create(self, item: OrganizationModel) -> Optional[int]:
-        try:
-            is_valid, errors = item.validate()
-            if not is_valid:
-                self.logger.log("base", f"Validation errors: {errors}", "warning")
-                return None
-            
-            result = OrganizationModel.create(
-                name=item.name,
-                slug=item.slug,
-                domain=item.domain,
-                description=item.description,
-                is_active=item.is_active
-            )
-            return result.get('id')
-        except Exception as e:
-            self.logger.log("base", f"Error creating organization: {e}", "error")
-            return None
-
-    def update(self, item_id: int, item: OrganizationModel) -> bool:
-        try:
-            is_valid, errors = item.validate()
-            if not is_valid:
-                self.logger.log("base", f"Validation errors: {errors}", "warning")
-                return False
-            
-            result = OrganizationModel.update_record(
-                item_id,
-                name=item.name,
-                slug=item.slug,
-                domain=item.domain,
-                description=item.description,
-                is_active=item.is_active
-            )
-            return result is not None
-        except Exception as e:
-            self.logger.log("base", f"Error updating organization: {e}", "error")
-            return False
-
-    def delete(self, item_id: int) -> bool:
-        try:
-            return OrganizationModel.delete_record(item_id)
-        except Exception as e:
-            self.logger.log("base", f"Error deleting organization: {e}", "error")
-            return False
+        ok, errs = item.validate()
+        return OrganizationModel.create(**item.to_dict()).get('id') if ok else None
+    def update(self, rid: int, item: OrganizationModel) -> bool:
+        ok, errs = item.validate()
+        return OrganizationModel.update_record(rid, **item.to_dict()) is not None if ok else False
+    def delete(self, rid: int) -> bool: return OrganizationModel.delete_record(rid)

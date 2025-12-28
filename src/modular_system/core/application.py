@@ -1,121 +1,59 @@
-import re
+import re, os
 from typing import Optional, Dict, Any, Callable, Tuple
 from ..logging.logger import CoreLogger
 from .registry import Registry
 from .environment import Environment
 from ..extensions.patch_engine import PatchEngine
+
 class ModularSystem:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        self.config = config or {}
-        self.registry = Registry(config=self.config)
+        self.config, self.logger = config or {}, CoreLogger()
+        self.registry = Registry(config=self.config, logger=self.logger)
         self.env = Environment(self.registry)
-        self.logger = CoreLogger()
         self.patch_engine: Optional[PatchEngine] = None
-        self._load_available_modules()
-        self._setup_extensions()
-        self.logger.log("core", "Modular system initialized", "info")
-    def _load_available_modules(self):
+        self._load_mods()
+        self._setup_exts()
+
+    def _load_mods(self):
         try:
-            from ..modules import modules as available_modules
-            self.registry.set_available_modules(available_modules)
-            self.logger.log("core", f"Loaded {len(available_modules)} available modules", "info")
-        except ImportError as e:
-            self.logger.log("core", f"Could not load modules: {e}", "warning")
-    def load_module(self, module_name: str) -> bool:
-        return self.registry.load_module(module_name, self.env)
-    def get_module(self, module_name: str):
-        return self.env.get_module(module_name)
-    def _match_route(self, route: str, route_pattern: str) -> Tuple[bool, Dict[str, str]]:
-        pattern = route_pattern
-        pattern = re.sub(r'<(\w+)>', r'(?P<\1>[^/]+)', pattern)
-        pattern = f'^{pattern}$'
-        match = re.match(pattern, route)
-        if match:
-            return True, match.groupdict()
-        return False, {}
-    def _create_handler_with_module(self, handler: Callable,
-                                   route_params: Optional[Dict[str, str]] = None) -> Callable:
-        def wrapped_handler(environ, start_response):
-            environ['ROUTE_PARAMS'] = route_params or {}
-            if isinstance(handler, str):
-                module_path, func_name = handler.rsplit('.', 1)
-                handler_module = __import__(module_path, fromlist=[func_name])
-                handler_func = getattr(handler_module, func_name)
-                return handler_func(environ, start_response, self.env)
-            else:
-                return handler(environ, start_response, self.env)
-        return wrapped_handler
-    def request_handler(self, environ: Dict[str, Any], start_response: Callable):
-        host = environ.get('HTTP_HOST', 'localhost')
-        # Improved multi-tenancy: Check X-Organization-Slug header or host
-        org_slug = environ.get('HTTP_X_ORGANIZATION_SLUG')
-        if not org_slug and '.' in host and host not in ('localhost', '127.0.0.1'):
-            org_slug = host.split('.')[0]
+            from ..modules import modules
+            self.registry.set_available_modules(modules)
+        except: pass
+
+    def load_module(self, name: str) -> bool: return self.registry.load_module(name, self.env)
+
+    def _match(self, path: str, pattern: str) -> Tuple[bool, Dict[str, str]]:
+        m = re.match(f"^{re.sub(r'<(\w+)>', r'(?P<\1>[^/]+)', pattern)}$", path)
+        return (True, m.groupdict()) if m else (False, {})
+
+    def handle(self, env: Dict, start: Callable):
+        path, method = env.get('PATH_INFO', '/'), env['REQUEST_METHOD']
+        if not path.startswith('/'): path = '/' + path
         
-        environ['ORG_CONTEXT'] = None
-        if org_slug:
-            org_service = self.env.get_service('organization_service')
-            if org_service:
-                org = org_service.get_by_slug(org_slug)
-                if org:
-                    environ['ORG_CONTEXT'] = org
-                else:
-                    self.logger.log("core", f"Organization not found for slug: {org_slug}", "warning")
-        route = environ.get('PATH_INFO', '/')
-        if not route.startswith('/'):
-            route = '/' + route
-        method = environ['REQUEST_METHOD']
-        self.logger.log("core", f"Request: {method} {route} (Host: {host}, Org: {org_slug})", "debug")
-        for route_name, route_method, handler in self.env.get_routes():
-            matches, params = self._match_route(route, route_name)
-            if matches and method == route_method:
-                return self._create_handler_with_module(handler, params)(environ, start_response)
-        return self._404_response(start_response)
-    def _404_response(self, start_response: Callable):
-        start_response('404 Not Found', [('Content-type', 'text/plain')])
-        return [b"Page not found"]
-    def _setup_extensions(self):
-        try:
-            self.patch_engine = PatchEngine()
-            self.patch_engine.set_logger(self.logger)
-            import os
-            extensions_dir = os.path.join(os.path.dirname(__file__), '..', 'extensions')
-            if os.path.exists(extensions_dir):
-                self.patch_engine.load_patches_from_directory(extensions_dir)
-            modules_dir = os.path.join(os.path.dirname(__file__), '..', 'modules')
-            if os.path.exists(modules_dir):
-                for module_name in os.listdir(modules_dir):
-                    module_patches_dir = os.path.join(modules_dir, module_name, 'patches')
-                    if os.path.exists(module_patches_dir):
-                        self.patch_engine.load_patches_from_directory(module_patches_dir)
-            def apply_patches_hook(module_name: str, module_instance: Any, env: Any):
-                if self.patch_engine:
-                    applied = self.patch_engine.apply_patches_to_module(module_name, module_instance, env)
-                    if applied > 0:
-                        self.logger.log("core", f"Applied {applied} patches to module '{module_name}'", "info")
-            self.registry.register_hook('module_loaded', apply_patches_hook)
-            patch_count = len(self.patch_engine.patches) if self.patch_engine else 0
-            self.logger.log("core", f"Extension system initialized with {patch_count} patches", "info")
-        except Exception as e:
-            self.logger.log("core", f"Error setting up extensions: {e}", "error")
-    def get_status(self) -> Dict[str, Any]:
-        return {
-            'registry': self.registry.get_status(),
-            'extensions': self.patch_engine.get_statistics() if self.patch_engine else {}
-        }
-    def run(self, host: str = 'localhost', port: int = 8080, debug: bool = False):
+        for route, r_method, handler in self.registry.get_routes():
+            ok, params = self._match(path, route)
+            if ok and method == r_method:
+                env['ROUTE_PARAMS'] = params
+                return handler(env, start, self.env) if not isinstance(handler, str) else \
+                       getattr(__import__(handler.rsplit('.', 1)[0], fromlist=[handler.rsplit('.', 1)[1]]), handler.rsplit('.', 1)[1])(env, start, self.env)
+
+        start('404 Not Found', [('Content-type', 'text/plain')])
+        return [b"Not Found"]
+
+    def _setup_exts(self):
+        self.patch_engine = PatchEngine()
+        self.patch_engine.set_logger(self.logger)
+        base = os.path.join(os.path.dirname(__file__), '..')
+        for d in [os.path.join(base, 'extensions'), os.path.join(base, 'modules')]:
+            if not os.path.exists(d): continue
+            if 'modules' in d:
+                for m in os.listdir(d):
+                    p = os.path.join(d, m, 'patches')
+                    if os.path.exists(p): self.patch_engine.load_patches_from_directory(p)
+            else: self.patch_engine.load_patches_from_directory(d)
+        self.registry.register_hook('module_loaded', lambda n, i, e: self.patch_engine.apply_patches_to_module(n, i, e) if self.patch_engine else 0)
+
+    def run(self, host: str = 'localhost', port: int = 8080):
         from wsgiref.simple_server import make_server
-        def wsgi_app(environ, start_response):
-            return self.request_handler(environ, start_response)
-        try:
-            httpd = make_server(host, port, wsgi_app)
-            self.logger.log("core", f"Server running on http://{host}:{port}", "info")
-            self.logger.log("core", "Press Ctrl+C to stop the server", "info")
-            if debug:
-                self.logger.log("core", "Debug mode enabled", "info")
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            self.logger.log("core", "Server stopped", "info")
-        except Exception as e:
-            self.logger.log("core", f"Server error: {e}", "error")
-            raise
+        self.logger.log("core", f"Serving on {host}:{port}", "info")
+        make_server(host, port, self.handle).serve_forever()

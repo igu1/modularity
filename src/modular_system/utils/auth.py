@@ -1,150 +1,58 @@
-import hashlib
-import secrets
-from typing import Optional, Tuple
+import hashlib, secrets, random, string, base64
+from typing import Optional, Tuple, List
 from urllib.parse import parse_qs
-from ..logging.logger import CoreLogger
-logger = CoreLogger()
-class AuthHelpers:
+
+class Auth:
     @staticmethod
-    def generate_token(length: int = 32) -> str:
-        return secrets.token_urlsafe(length)
+    def gen_token(n: int = 32) -> str: return secrets.token_urlsafe(n)
     @staticmethod
-    def generate_api_key(length: int = 40) -> str:
-        return secrets.token_urlsafe(length)
+    def hash_pw(pw: str, salt: str = None) -> Tuple[str, str]:
+        salt = salt or secrets.token_hex(16)
+        return hashlib.pbkdf2_hmac('sha256', pw.encode(), salt.encode(), 100000).hex(), salt
     @staticmethod
-    def hash_password(password: str, salt: Optional[str] = None) -> Tuple[str, str]:
-        if salt is None:
-            salt = secrets.token_hex(16)
-        password_hash = hashlib.pbkdf2_hmac(
-            'sha256',
-            password.encode('utf-8'),
-            salt.encode('utf-8'),
-            100000                        
-        )
-        return password_hash.hex(), salt
+    def verify_pw(pw: str, h: str, s: str) -> bool: return secrets.compare_digest(Auth.hash_pw(pw, s)[0], h)
     @staticmethod
-    def verify_password(password: str, password_hash: str, salt: str) -> bool:
-        hash_calc, _ = AuthHelpers.hash_password(password, salt)
-        return secrets.compare_digest(hash_calc, password_hash)
+    def get_bearer(env: dict) -> Optional[str]:
+        h = env.get('HTTP_AUTHORIZATION', '')
+        return h[7:] if h.startswith('Bearer ') else None
     @staticmethod
-    def get_bearer_token(environ: dict) -> Optional[str]:
-        auth_header = environ.get('HTTP_AUTHORIZATION', '')
-        if auth_header.startswith('Bearer '):
-            return auth_header[7:]
-        return None
+    def get_api_key(env: dict) -> Optional[str]:
+        return env.get('HTTP_X_API_KEY') or parse_qs(env.get('QUERY_STRING', '')).get('api_key', [None])[0]
     @staticmethod
-    def get_api_key(environ: dict) -> Optional[str]:
-        api_key = environ.get('HTTP_X_API_KEY')
-        if api_key:
-            return api_key
-        query_string = environ.get('QUERY_STRING', '')
-        params = parse_qs(query_string)
-        if 'api_key' in params:
-            return params['api_key'][0]
-        return None
+    def is_strong(pw: str) -> bool:
+        return len(pw) >= 8 and any(c.isupper() for c in pw) and any(c.islower() for c in pw) and any(c.isdigit() for c in pw)
     @staticmethod
-    def generate_session_token() -> str:
-        return secrets.token_urlsafe(32)
+    def suggest_pw(n: int = 3) -> List[str]:
+        res = []
+        for _ in range(n):
+            p = [random.choice(string.ascii_uppercase), random.choice(string.ascii_lowercase), random.choice(string.digits), random.choice('!@#$%^&*')]
+            chars = string.ascii_letters + string.digits + '!@#$%^&*'
+            p += [random.choice(chars) for _ in range(random.randint(8, 16) - 4)]
+            random.shuffle(p)
+            res.append(''.join(p))
+        return res
     @staticmethod
-    def hash_data(data: str, salt: Optional[str] = None) -> Tuple[str, str]:
-        if salt is None:
-            salt = secrets.token_hex(16)
-        data_hash = hashlib.sha256(
-            (data + salt).encode('utf-8')
-        ).hexdigest()
-        return data_hash, salt
-    @staticmethod
-    def verify_data(data: str, data_hash: str, salt: str) -> bool:
-        hash_calc, _ = AuthHelpers.hash_data(data, salt)
-        return secrets.compare_digest(hash_calc, data_hash)
-    @staticmethod
-    def is_strong_password(password: str) -> bool:
-        if len(password) < 8:
-            return False
-        has_upper = any(c.isupper() for c in password)
-        has_lower = any(c.islower() for c in password)
-        has_digit = any(c.isdigit() for c in password)
-        has_special = any(c in '!@
-        return has_upper and has_lower and has_digit and has_special
-    @staticmethod
-    def generate_password_suggestions(count: int = 3) -> list:
-        import random
-        import string
-        suggestions = []
-        for _ in range(count):
-            password = [
-                random.choice(string.ascii_uppercase),
-                random.choice(string.ascii_lowercase),
-                random.choice(string.digits),
-                random.choice('!@
-            ]
-            remaining_length = random.randint(8, 16) - 4
-            all_chars = string.ascii_letters + string.digits + '!@
-            password.extend(random.choice(all_chars) for _ in range(remaining_length))
-            random.shuffle(password)
-            suggestions.append(''.join(password))
-        return suggestions
-    @staticmethod
-    def create_csrf_token() -> str:
-        return secrets.token_urlsafe(32)
-    @staticmethod
-    def verify_csrf_token(token: str, expected_token: str) -> bool:
-        return secrets.compare_digest(token, expected_token)
-    @staticmethod
-    def encrypt_sensitive_data(data: str, key: str) -> str:
+    def crypt(data: str, key: str, enc: bool = True) -> str:
         from cryptography.fernet import Fernet
-        import base64
-        key_bytes = base64.urlsafe_b64encode(key.encode()[:32].ljust(32, b'0'))
-        f = Fernet(key_bytes)
-        encrypted_data = f.encrypt(data.encode())
-        return encrypted_data.decode()
+        f = Fernet(base64.urlsafe_b64encode(key.encode()[:32].ljust(32, b'0')))
+        return f.encrypt(data.encode()).decode() if enc else f.decrypt(data.encode()).decode()
+
+class Permissions:
     @staticmethod
-    def decrypt_sensitive_data(encrypted_data: str, key: str) -> str:
-        from cryptography.fernet import Fernet
-        import base64
-        key_bytes = base64.urlsafe_b64encode(key.encode()[:32].ljust(32, b'0'))
-        f = Fernet(key_bytes)
-        decrypted_data = f.decrypt(encrypted_data.encode())
-        return decrypted_data.decode()
-class PermissionChecker:
-    def __init__(self, permissions: list = None):
-        self.permissions = permissions or []
-    def has_permission(self, user_permissions: list, required_permission: str) -> bool:
-        return required_permission in user_permissions
-    def has_any_permission(self, user_permissions: list, required_permissions: list) -> bool:
-        return any(perm in user_permissions for perm in required_permissions)
-    def has_all_permissions(self, user_permissions: list, required_permissions: list) -> bool:
-        return all(perm in user_permissions for perm in required_permissions)
-    def is_admin(self, user_permissions: list) -> bool:
-        return self.has_permission(user_permissions, 'admin') or self.has_permission(user_permissions, 'super_admin')
+    def check(user_perms: list, req: str) -> bool: return req in user_perms
+    @staticmethod
+    def check_any(user_perms: list, reqs: list) -> bool: return any(p in user_perms for p in reqs)
+    @staticmethod
+    def is_admin(user_perms: list) -> bool: return any(p in user_perms for p in ['admin', 'super_admin'])
+
 class RateLimiter:
-    def __init__(self, max_requests: int = 100, window_seconds: int = 3600):
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        self.requests = {}
-    def is_allowed(self, identifier: str) -> bool:
+    def __init__(self, limit: int = 100, window: int = 3600):
+        self.limit, self.window, self.reqs = limit, window, {}
+    def is_allowed(self, uid: str) -> bool:
         import time
         now = time.time()
-        window_start = now - self.window_seconds
-        if identifier in self.requests:
-            self.requests[identifier] = [
-                req_time for req_time in self.requests[identifier]
-                if req_time > window_start
-            ]
-        else:
-            self.requests[identifier] = []
-        if len(self.requests[identifier]) < self.max_requests:
-            self.requests[identifier].append(now)
+        self.reqs[uid] = [t for t in self.reqs.get(uid, []) if t > now - self.window]
+        if len(self.reqs[uid]) < self.limit:
+            self.reqs[uid].append(now)
             return True
         return False
-    def get_remaining_requests(self, identifier: str) -> int:
-        import time
-        now = time.time()
-        window_start = now - self.window_seconds
-        if identifier in self.requests:
-            self.requests[identifier] = [
-                req_time for req_time in self.requests[identifier]
-                if req_time > window_start
-            ]
-            return max(0, self.max_requests - len(self.requests[identifier]))
-        return self.max_requests
