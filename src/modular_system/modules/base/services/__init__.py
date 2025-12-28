@@ -1,2 +1,3 @@
 from .system_service import SystemService
-__all__ = ['SystemService']
+from .organization_service import OrganizationService
+__all__ = ['SystemService', 'OrganizationService']

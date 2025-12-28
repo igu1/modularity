@@ -18,9 +18,8 @@ class ProductModule:
     def initialize(self, env):
         self.env = env
         self._create_table()
-        from .views import WebViews, APIViews
+        from .views import APIViews
         from .services import ProductService
-        self.web_views = WebViews(self)
         self.api_views = APIViews(self)
         self.services = {'product_service': ProductService(self)}
         if hasattr(env, 'register_service'):

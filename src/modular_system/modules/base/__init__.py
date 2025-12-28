@@ -20,17 +20,50 @@ class BaseModule:
         return self._dependencies
     def initialize(self, env):
         self.env = env
-        from .views import WebViews, APIViews
-        from .services import SystemService
-        self.web_views = WebViews(self)
+        self._create_tables()
+        from .views import APIViews
+        from .services import SystemService, OrganizationService
         self.api_views = APIViews(self)
-        self.services = {'system_service': SystemService(self)}
-        from .routes import get_routes
-        routes = get_routes(self)
-        for route_pattern, method, handler in routes:
-            if hasattr(env, '_registry'):
-                env._registry.add_routes([(route_pattern, method, handler)], 'base')
+        self.services = {
+            'system_service': SystemService(self),
+            'organization_service': OrganizationService(self)
+        }
+        
+        # Register services in env
+        if hasattr(env, 'register_service'):
+            env.register_service('system_service', self.services['system_service'])
+            env.register_service('organization_service', self.services['organization_service'])
+
         self.logger.log("base", "Base module initialized with environment", "info")
+
+    def load_routes(self):
+        from .routes import get_routes
+        return get_routes(self)
+
+    def _create_tables(self):
+        try:
+            from modular_system.database.connection import get_engine
+            from sqlalchemy import text
+            engine = get_engine()
+            create_table_sql = """
+            CREATE TABLE IF NOT EXISTS organizations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL,
+                slug VARCHAR(100) UNIQUE NOT NULL,
+                domain VARCHAR(255) UNIQUE,
+                description TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+            with engine.connect() as conn:
+                conn.execute(text(create_table_sql))
+                conn.commit()
+            self.logger.log("base", "Created table: organizations", "info")
+        except Exception as e:
+            self.logger.log("base", f"Error creating table: {e}", "error")
+
     def _init_database(self):
         try:
             from modular_system.database.connection import init_db

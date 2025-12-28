@@ -7,7 +7,7 @@ from ..extensions.patch_engine import PatchEngine
 class ModularSystem:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
-        self.registry = Registry()
+        self.registry = Registry(config=self.config)
         self.env = Environment(self.registry)
         self.logger = CoreLogger()
         self.patch_engine: Optional[PatchEngine] = None
@@ -47,16 +47,20 @@ class ModularSystem:
         return wrapped_handler
     def request_handler(self, environ: Dict[str, Any], start_response: Callable):
         host = environ.get('HTTP_HOST', 'localhost')
-        org_slug = host.split('.')[0] if '.' in host and host != 'localhost' and host != '127.0.0.1' else None
+        # Improved multi-tenancy: Check X-Organization-Slug header or host
+        org_slug = environ.get('HTTP_X_ORGANIZATION_SLUG')
+        if not org_slug and '.' in host and host not in ('localhost', '127.0.0.1'):
+            org_slug = host.split('.')[0]
+        
         environ['ORG_CONTEXT'] = None
         if org_slug:
             org_service = self.env.get_service('organization_service')
             if org_service:
-                orgs = org_service.get_all()
-                for org in orgs:
-                    if org.slug == org_slug or org.domain == host:
-                        environ['ORG_CONTEXT'] = org
-                        break
+                org = org_service.get_by_slug(org_slug)
+                if org:
+                    environ['ORG_CONTEXT'] = org
+                else:
+                    self.logger.log("core", f"Organization not found for slug: {org_slug}", "warning")
         route = environ.get('PATH_INFO', '/')
         if not route.startswith('/'):
             route = '/' + route

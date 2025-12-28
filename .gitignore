@@ -159,17 +159,12 @@ logs/
 .temp/
 tmp/
 
-# Exclude tests
-tests/
-**/tests/
-
 # Exclude documentation files
 *.md
 !README.md
 
 # Exclude demo and test scripts
 DEMO_*.py
-test_*.py
 demo_*.py
 
 # Exclude module creation script

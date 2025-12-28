@@ -1,8 +1,10 @@
 def get_routes(module):
+    views = module.api_views
     routes = [
-        ('/product', 'GET', module.web_views.list_view),
-        ('/product/create', 'GET', module.web_views.create_view),
-        ('/product/create', 'POST', module.web_views.create_view),
-        ('/api/product', 'GET', module.api_views.list_api),
+        ('/api/products', 'GET', views.list_api),
+        ('/api/products', 'POST', views.create_api),
+        ('/api/products/<id>', 'GET', views.get_api),
+        ('/api/products/<id>', 'PUT', views.update_api),
+        ('/api/products/<id>', 'DELETE', views.delete_api),
     ]
     return routes

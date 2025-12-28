@@ -1,7 +1,8 @@
 from typing import Dict, List, Any, Callable, Set, Tuple, Optional
 from ..logging.logger import CoreLogger
+
 class Registry:
-    def __init__(self, logger: Optional[CoreLogger] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, logger: Optional[CoreLogger] = None):
         self.modules: Dict[str, Any] = {}
         self.services: Dict[str, Any] = {}
         self.routes: List[Tuple[str, str, Callable]] = []
@@ -10,11 +11,15 @@ class Registry:
         self._subscribers: Dict[str, Set[Tuple[str, Callable]]] = {}
         self._extension_hooks: Dict[str, List[Callable]] = {}
         self.logger = logger or CoreLogger()
+        self.config = config or {}
+
     def register_module(self, name: str, module: Any):
         self.modules[name] = module
         self.logger.log("registry", f"Registered module: {name}", "debug")
+
     def get_module(self, name: str) -> Optional[Any]:
         return self.modules.get(name)
+
     def set_available_modules(self, modules_dict: Dict[str, Any]):
         self.available_modules = modules_dict
         self.logger.log("registry", f"Set {len(modules_dict)} available modules", "debug")
@@ -27,7 +32,11 @@ class Registry:
             return False
         self.logger.log("registry", f"Loading module: {module_name}", "info")
         try:
-            temp_instance = module_class()
+            module_config = self.config.get('modules', {}).get(module_name, {})
+            if not module_config:
+                module_config = self.config
+                
+            temp_instance = module_class(config=module_config)
             module_deps = getattr(temp_instance, 'dependencies', [])
             for dep in module_deps:
                 if dep not in self.list_loaded_modules() and dep in self.list_available_modules():
@@ -37,7 +46,8 @@ class Registry:
                     error_msg = f"Module '{dep}' is not available but listed as dependency"
                     self.logger.log("registry", error_msg, "error")
                     raise ValueError(error_msg)
-            module_instance = module_class()
+            
+            module_instance = module_class(config=module_config)
             if hasattr(module_instance, 'initialize'):
                 module_instance.initialize(env)
             
