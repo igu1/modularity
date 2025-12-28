@@ -36,5 +36,7 @@ class DatabaseService:
             with session_scope(False) as s: s.execute("SELECT 1"); return True
         except: return False
 
+def get_engine() -> Any: return _eng
+
 db_service = DatabaseService()
 def get_database_service() -> DatabaseService: return db_service

@@ -5,6 +5,12 @@ from ..messaging import get_event_bus
 class Environment:
     def __init__(self, registry: Registry):
         self._registry, self._bus = registry, get_event_bus()
+        self.template_engine = None
+
+    def render_template(self, module_name: str, template_name: str, **context) -> str:
+        if not self.template_engine:
+            raise RuntimeError("Template engine not initialized")
+        return self.template_engine.render(module_name, template_name, **context)
 
     def get_module(self, name: str) -> Optional[Any]: return self._registry.modules.get(name)
     def get_service(self, name: str) -> Optional[Any]: return self._registry.services.get(name)

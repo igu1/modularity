@@ -1,5 +1,5 @@
-from .connection import init_db, get_session, session_scope, get_database_service
+from .connection import init_db, get_session, session_scope, get_database_service, get_engine
 from .models import DatabaseModel, Base
 from .repository import BaseRepository, get_repo_manager
 
-__all__ = ["init_db", "get_session", "session_scope", "get_database_service", "DatabaseModel", "Base", "BaseRepository", "get_repo_manager"]
+__all__ = ["init_db", "get_session", "session_scope", "get_database_service", "get_engine", "DatabaseModel", "Base", "BaseRepository", "get_repo_manager"]

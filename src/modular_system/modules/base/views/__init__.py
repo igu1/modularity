@@ -1,2 +1,3 @@
 from .api import APIViews
-__all__ = ['APIViews']
+from .web import WebViews
+__all__ = ['APIViews', 'WebViews']

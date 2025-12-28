@@ -87,11 +87,8 @@ class {class_name}:
         self.web_views = WebViews(self)
         self.api_views = APIViews(self)
         self.services = {{'{module_name}_service': {module_name.title().replace('_', '')}Service(self)}}
-        from .routes import get_routes
-        routes = get_routes(self)
-        for route_pattern, method, handler in routes:
-            if hasattr(env, '_registry'):
-                env._registry.add_routes([(route_pattern, method, handler)], '{module_name}')
+        if hasattr(env, 'register_service'):
+            for k, v in self.services.items(): env.register_service(k, v)
         self.logger.log("{module_name}", "{module_name} module initialized with environment", "info")
     def _create_table(self):
         try:
@@ -114,7 +111,7 @@ class {class_name}:
             self.logger.log("{module_name}", f"Created table: {module_name}s", "info")
         except Exception as e:
             self.logger.log("{module_name}", f"Error creating table: {{e}}", "error")
-    def get_routes(self):
+    def load_routes(self):
         from .routes import get_routes
         return get_routes(self)
     def get_info(self) -> Dict[str, Any]:
@@ -174,8 +171,8 @@ class {model_name}Model(DatabaseModel):
             'name': self.name,
             'description': self.description,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at,
+            'updated_at': self.updated_at.isoformat() if hasattr(self.updated_at, 'isoformat') else self.updated_at
         }}
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> '{model_name}Model':
@@ -204,40 +201,133 @@ class {model_name}Model(DatabaseModel):
         f.write(content)
 def create_view_templates(module_path, module_name):
     class_name = module_name.title().replace('_', '')
+    
+    # Static files structure
+    os.makedirs(os.path.join(module_path, "static", "css"), exist_ok=True)
+    with open(os.path.join(module_path, "static", "css", f"{module_name}.css"), 'w') as f:
+        f.write(f"/* {class_name} specific styles */\n")
+
+    # Template files
+    list_template = f'''{{% extends "base/templates/base.html" %}}
+
+{{% block head %}}
+<link rel="stylesheet" href="/static/{module_name}/css/{module_name}.css">
+{{% endblock %}}
+
+{{% block title %}}{class_name} Management - Modular System{{% endblock %}}
+
+{{% block content %}}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-xl font-semibold text-gray-900">{class_name}</h1>
+            <p class="mt-2 text-sm text-gray-700">Manage your {module_name}s here.</p>
+        </div>
+        <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            <a href="/web/{module_name}/create" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
+                Add {module_name}
+            </a>
+        </div>
+    </div>
+    <div class="mt-8 flex flex-col">
+        <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Name</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Description</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {{% for item in items %}}
+                            <tr>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{{{ item.name }}}}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{{{ item.description }}}}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {{% if item.is_active %}}
+                                    <span class="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Active</span>
+                                    {{% else %}}
+                                    <span class="inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800">Inactive</span>
+                                    {{% endif %}}
+                                </td>
+                            </tr>
+                            {{% else %}}
+                            <tr>
+                                <td colspan="3" class="px-3 py-4 text-sm text-gray-500 text-center">No {module_name}s found.</td>
+                            </tr>
+                            {{% endfor %}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{% endblock %}}
+'''
+    with open(os.path.join(module_path, "templates", "list.html"), 'w') as f:
+        f.write(list_template)
+
+    create_template = f'''{{% extends "base/templates/base.html" %}}
+
+{{% block title %}}Create {class_name} - Modular System{{% endblock %}}
+
+{{% block content %}}
+<div class="md:grid md:grid-cols-3 md:gap-6">
+    <div class="md:col-span-1">
+        <div class="px-4 sm:px-0">
+            <h3 class="text-lg font-medium leading-6 text-gray-900">New {class_name}</h3>
+            <p class="mt-1 text-sm text-gray-600">Create a new {module_name} in the system.</p>
+        </div>
+    </div>
+    <div class="mt-5 md:col-span-2 md:mt-0">
+        <form action="/web/{module_name}/create" method="POST">
+            <div class="shadow sm:overflow-hidden sm:rounded-md">
+                <div class="space-y-6 bg-white px-4 py-5 sm:p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="col-span-3 sm:col-span-2">
+                            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="name" id="name" required class="block w-full flex-1 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="{class_name} name">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <div class="mt-1">
+                            <textarea id="description" name="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="{class_name} description"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 text-right sm:px-6">
+                    <a href="/web/{module_name}" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mr-2">Cancel</a>
+                    <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{{% endblock %}}
+'''
+    with open(os.path.join(module_path, "templates", "create.html"), 'w') as f:
+        f.write(create_template)
+
     web_content = f'''from typing import Any
+import urllib.parse
 class WebViews:
     def __init__(self, module):
         self.module = module
         self.logger = module.logger
     def list_view(self, environ: dict, start_response: Any, module_instance: Any):
         try:
-            html = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{class_name} Management</title>
-    <style>
-        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f5f5f5; }}
-        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }}
-        h1 {{ color: #333; }}
-        .btn {{ padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 4px; }}
-        .item {{ border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 4px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 {class_name} Management</h1>
-        <p>This is the {module_name} module following the standardized structure.</p>
-        <a href="/{module_name}/create" class="btn">+ Create New</a>
-        <div class="item">
-            <h3>Sample {class_name}</h3>
-            <p>This is a sample item. Replace with your actual data.</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
-            response_body = html.encode('utf-8')
+            service = self.module.services['{module_name}_service']
+            items = service.get_all()
+            body = self.module.env.render_template('{module_name}', 'list.html', items=items)
+            response_body = body.encode('utf-8')
             start_response('200 OK', [
                 ('Content-Type', 'text/html'),
                 ('Content-Length', str(len(response_body)))
@@ -253,40 +343,22 @@ class WebViews:
             return [error_body]
     def create_view(self, environ: dict, start_response: Any, module_instance: Any):
         try:
-            html = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create {class_name}</title>
-    <style>
-        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f5f5f5; }}
-        .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }}
-        .form-group {{ margin-bottom: 20px; }}
-        label {{ display: block; margin-bottom: 5px; font-weight: 600; color: #333; }}
-        input, textarea {{ width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }}
-        .btn {{ padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>➕ Create New {class_name}</h1>
-        <form method="POST">
-            <div class="form-group">
-                <label>Name *</label>
-                <input type="text" name="name" required>
-            </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea name="description" placeholder="Enter description..."></textarea>
-            </div>
-            <button type="submit" class="btn">Create {class_name}</button>
-            <a href="/{module_name}" class="btn" style="background: #6c757d; text-decoration: none; display: inline-block; margin-left: 10px;">Cancel</a>
-        </form>
-    </div>
-</body>
-</html>
-"""
-            response_body = html.encode('utf-8')
+            if environ['REQUEST_METHOD'] == 'POST':
+                content_length = int(environ.get('CONTENT_LENGTH', 0))
+                post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
+                params = urllib.parse.parse_qs(post_data)
+                from ..models.{module_name} import {class_name}Model
+                item = {class_name}Model(
+                    name=params.get('name', [''])[0],
+                    description=params.get('description', [''])[0],
+                    is_active=True
+                )
+                service = self.module.services['{module_name}_service']
+                service.create(item)
+                start_response('303 See Other', [('Location', '/web/{module_name}')])
+                return [b""]
+            body = self.module.env.render_template('{module_name}', 'create.html')
+            response_body = body.encode('utf-8')
             start_response('200 OK', [
                 ('Content-Type', 'text/html'),
                 ('Content-Length', str(len(response_body)))
@@ -312,11 +384,13 @@ class APIViews:
         self.logger = module.logger
     def list_api(self, environ: dict, start_response: Any, module_instance: Any):
         try:
+            service = self.module.services['{module_name}_service']
+            items = service.get_all()
             data = {{
+                'success': True,
                 'module': '{module_name}',
-                'message': '{class_name} API endpoint',
-                'data': [],
-                'total': 0
+                'data': [item.to_dict() for item in items],
+                'total': len(items)
             }}
             response_body = json.dumps(data, indent=2).encode('utf-8')
             start_response('200 OK', [
@@ -326,7 +400,37 @@ class APIViews:
             return [response_body]
         except Exception as e:
             self.logger.log("{module_name}", f"Error in list API: {{e}}", "error")
-            error_data = {{'error': str(e)}}
+            error_data = {{'success': False, 'error': str(e)}}
+            error_body = json.dumps(error_data).encode('utf-8')
+            start_response('500 Internal Server Error', [
+                ('Content-Type', 'application/json'),
+                ('Content-Length', str(len(error_body)))
+            ])
+            return [error_body]
+    def create_api(self, environ: dict, start_response: Any, module_instance: Any):
+        try:
+            content_length = int(environ.get('CONTENT_LENGTH', 0))
+            post_data = environ['wsgi.input'].read(content_length)
+            data = json.loads(post_data)
+            from ..models.{module_name} import {class_name}Model
+            item = {class_name}Model.from_dict(data)
+            service = self.module.services['{module_name}_service']
+            item_id = service.create(item)
+            if item_id:
+                res = {{'success': True, 'id': item_id}}
+                status = '201 Created'
+            else:
+                res = {{'success': False, 'error': 'Failed to create {module_name}'}}
+                status = '400 Bad Request'
+            response_body = json.dumps(res).encode('utf-8')
+            start_response(status, [
+                ('Content-Type', 'application/json'),
+                ('Content-Length', str(len(response_body)))
+            ])
+            return [response_body]
+        except Exception as e:
+            self.logger.log("{module_name}", f"Error in create API: {{e}}", "error")
+            error_data = {{'success': False, 'error': str(e)}}
             error_body = json.dumps(error_data).encode('utf-8')
             start_response('500 Internal Server Error', [
                 ('Content-Type', 'application/json'),
@@ -338,21 +442,36 @@ class APIViews:
     with open(api_file, 'w') as f:
         f.write(api_content)
 def create_route_templates(module_path, module_name):
-    route_content = f'''def get_routes(module):
+    web_route_content = f'''def web_routes(module):
     routes = [
-        ('/{module_name}', 'GET', module.web_views.list_view),
-        ('/{module_name}/create', 'GET', module.web_views.create_view),
-        ('/{module_name}/create', 'POST', module.web_views.create_view),
-        ('/api/{module_name}', 'GET', module.api_views.list_api),
+        ('/web/{module_name}', 'GET', module.web_views.list_view),
+        ('/web/{module_name}/create', 'GET', module.web_views.create_view),
+        ('/web/{module_name}/create', 'POST', module.web_views.create_view),
     ]
     return routes
 '''
-    web_route_file = os.path.join(module_path, "routes", "web.py")
-    with open(web_route_file, 'w') as f:
-        f.write(route_content)
-    api_route_file = os.path.join(module_path, "routes", "api.py")
-    with open(api_route_file, 'w') as f:
-        f.write(route_content)
+    api_route_content = f'''def api_routes(module):
+    routes = [
+        ('/api/{module_name}', 'GET', module.api_views.list_api),
+        ('/api/{module_name}', 'POST', module.api_views.create_api),
+    ]
+    return routes
+'''
+    init_route_content = f'''from .api import api_routes
+from .web import web_routes
+
+def get_routes(mod):
+    return api_routes(mod) + web_routes(mod)
+
+__all__ = ['get_routes']
+'''
+    os.makedirs(os.path.join(module_path, "routes"), exist_ok=True)
+    with open(os.path.join(module_path, "routes", "web.py"), 'w') as f:
+        f.write(web_route_content)
+    with open(os.path.join(module_path, "routes", "api.py"), 'w') as f:
+        f.write(api_route_content)
+    with open(os.path.join(module_path, "routes", "__init__.py"), 'w') as f:
+        f.write(init_route_content)
 def create_service_template(module_path, module_name):
     class_name = module_name.title().replace('_', '')
     service_content = f'''from typing import List, Optional, Dict, Any

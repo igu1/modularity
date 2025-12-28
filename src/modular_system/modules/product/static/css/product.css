@@ -1,0 +1,7 @@
+/* Product module specific styles */
+.product-card {
+    transition: transform 0.2s;
+}
+.product-card:hover {
+    transform: translateY(-2px);
+}

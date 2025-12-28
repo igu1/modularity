@@ -31,7 +31,9 @@ class BaseModule:
                 conn.commit()
         except: pass
         
+        from .views import APIViews, WebViews
         from .services import SystemService, OrganizationService
+        self.api_views, self.web_views = APIViews(self), WebViews(self)
         self.services = {'system_service': SystemService(self), 'organization_service': OrganizationService(self)}
         if hasattr(env, 'register_service'):
             for k, v in self.services.items(): env.register_service(k, v)

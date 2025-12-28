@@ -9,6 +9,7 @@ class OrganizationModel(DatabaseModel):
     slug = Column(String(100), unique=True, nullable=False)
     domain = Column(String(255), unique=True)
     description = Column(Text)
+    is_active = Column(Integer, default=1)
 
     def validate(self):
         errs = []
