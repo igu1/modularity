@@ -16,7 +16,16 @@ def main() -> None:
                 print(f"    - {error}")
         sys.exit(1)
     system = ModularSystem(config.__dict__)
-    default_modules = ['base', 'contact', 'product']
+    default_modules = [
+        'base',
+        'product', 
+        'organization', 
+        # 'category', 
+        # 'cart',
+        # 'wishlist',
+        # 'checkout',
+        # 'order'
+    ]
     for module_name in default_modules:
         try:
             if system.load_module(module_name):
@@ -27,7 +36,6 @@ def main() -> None:
         except Exception as e:
             print(f"✗ Error loading module {module_name}: {e}")
             sys.exit(1)
-    system.load_manifest()
     status = system.get_status()
     print(f"\nSystem Status:")
     print(f"  Loaded modules: {status['registry']['loaded_modules']}")

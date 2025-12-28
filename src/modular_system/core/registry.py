@@ -37,14 +37,16 @@ class Registry:
                     error_msg = f"Module '{dep}' is not available but listed as dependency"
                     self.logger.log("registry", error_msg, "error")
                     raise ValueError(error_msg)
-            try:
-                routes = module_class().load_routes()
-                self.add_routes(routes, module_name)
-            except AttributeError:
-                pass
             module_instance = module_class()
             if hasattr(module_instance, 'initialize'):
                 module_instance.initialize(env)
+            
+            try:
+                routes = module_instance.load_routes()
+                self.add_routes(routes, module_name)
+            except AttributeError:
+                pass
+            
             self.register_module(module_name, module_instance)
             self._trigger_hook('module_loaded', module_name, module_instance, env)
             self.logger.log("registry", f"Successfully loaded module: {module_name}", "info")

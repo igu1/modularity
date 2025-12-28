@@ -46,14 +46,25 @@ class ModularSystem:
                 return handler(environ, start_response, self.env)
         return wrapped_handler
     def request_handler(self, environ: Dict[str, Any], start_response: Callable):
+        host = environ.get('HTTP_HOST', 'localhost')
+        org_slug = host.split('.')[0] if '.' in host and host != 'localhost' and host != '127.0.0.1' else None
+        environ['ORG_CONTEXT'] = None
+        if org_slug:
+            org_service = self.env.get_service('organization_service')
+            if org_service:
+                orgs = org_service.get_all()
+                for org in orgs:
+                    if org.slug == org_slug or org.domain == host:
+                        environ['ORG_CONTEXT'] = org
+                        break
         route = environ.get('PATH_INFO', '/')
+        if not route.startswith('/'):
+            route = '/' + route
         method = environ['REQUEST_METHOD']
+        self.logger.log("core", f"Request: {method} {route} (Host: {host}, Org: {org_slug})", "debug")
         for route_name, route_method, handler in self.env.get_routes():
             matches, params = self._match_route(route, route_name)
             if matches and method == route_method:
-                module_name = self.env.get_module_for_route(route_name)
-                if module_name:
-                    return self._create_handler_with_module(handler, params)(environ, start_response)
                 return self._create_handler_with_module(handler, params)(environ, start_response)
         return self._404_response(start_response)
     def _404_response(self, start_response: Callable):
