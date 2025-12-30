@@ -44,11 +44,12 @@ class ProductService:
                 return None
             with engine.connect() as conn:
                 result = conn.execute(text(f"""
-                    INSERT INTO products (name, description, is_active)
-                    VALUES (:name, :description, :is_active)
+                    INSERT INTO products (name, description, category_id, is_active)
+                    VALUES (:name, :description, :category_id, :is_active)
                 """), {
                     'name': item.name,
                     'description': item.description,
+                    'category_id': item.category_id,
                     'is_active': item.is_active
                 })
                 conn.commit()
@@ -69,13 +70,14 @@ class ProductService:
             with engine.connect() as conn:
                 conn.execute(text(f"""
                     UPDATE products 
-                    SET name = :name, description = :description, is_active = :is_active,
+                    SET name = :name, description = :description, category_id = :category_id, is_active = :is_active,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = :id
                 """), {
                     'id': item_id,
                     'name': item.name,
                     'description': item.description,
+                    'category_id': item.category_id,
                     'is_active': item.is_active
                 })
                 conn.commit()

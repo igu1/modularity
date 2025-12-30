@@ -28,13 +28,29 @@ class BaseModule:
                         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password VARCHAR(255) NOT NULL,
+                        is_active BOOLEAN DEFAULT 1,
+                        metadata_fields JSON,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
                 conn.commit()
         except: pass
         
-        from .views import APIViews, WebViews
-        from .services import SystemService, OrganizationService
-        self.api_views, self.web_views = APIViews(self), WebViews(self)
-        self.services = {'system_service': SystemService(self), 'organization_service': OrganizationService(self)}
+        from .views import APIViews
+        from .services import SystemService, OrganizationService, AuthService
+        self.api_views = APIViews(self)
+        self.services = {
+            'system_service': SystemService(self),
+            'organization_service': OrganizationService(self),
+            'auth_service': AuthService(self)
+        }
         if hasattr(env, 'register_service'):
             for k, v in self.services.items(): env.register_service(k, v)
 

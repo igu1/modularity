@@ -15,6 +15,8 @@ class Environment:
     def get_module(self, name: str) -> Optional[Any]: return self._registry.modules.get(name)
     def get_service(self, name: str) -> Optional[Any]: return self._registry.services.get(name)
     def register_service(self, name: str, service: Any): self._registry.register_service(name, service)
+    def add_route(self, pattern: str, method: str, handler: Callable, mod: str):
+        self._registry.routes.append((pattern, method, handler))
     def get_routes(self) -> List[tuple]: return self._registry.get_routes()
 
     def subscribe(self, topic: str, cb: Callable) -> str: return self._bus.subscribe(topic, cb)

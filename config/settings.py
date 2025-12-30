@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 @dataclass
 class DbConfig:
-    url: str = "sqlite:///modular_system.db"
+    url: str = "sqlite:///system.db"
     echo: bool = False
 
 @dataclass
@@ -21,10 +21,17 @@ class SvrConfig:
     debug: bool = False
 
 @dataclass
+class AuthConfig:
+    jwt_secret: str = "your-secret-key"
+    access_token_expiry: int = 3600  # seconds (1 hour)
+    refresh_token_expiry: int = 604800  # seconds (7 days)
+
+@dataclass
 class Config:
     db: DbConfig = field(default_factory=DbConfig)
     log: LogConfig = field(default_factory=LogConfig)
     svr: SvrConfig = field(default_factory=SvrConfig)
+    auth: AuthConfig = field(default_factory=AuthConfig)
 
 class ConfigManager:
     def __init__(self, path: str = "config.json"):

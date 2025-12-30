@@ -4,11 +4,10 @@ class ProductModule:
         self.config = config or {}
         self.name = 'product'
         self.version = '1.0.0'
-        self._dependencies = ['base']
+        self._dependencies = ['base', 'category']
         self.env = None
         from modular_system.logging.logger import CoreLogger
         self.logger = CoreLogger()
-        self.web_views = None
         self.api_views = None
         self.services = None
         self.logger.log("product", "product module initialized", "info")
@@ -18,9 +17,8 @@ class ProductModule:
     def initialize(self, env):
         self.env = env
         self._create_table()
-        from .views import WebViews, APIViews
         from .services import ProductService
-        self.web_views = WebViews(self)
+        from .views import APIViews
         self.api_views = APIViews(self)
         self.services = {'product_service': ProductService(self)}
         if hasattr(env, 'register_service'):
@@ -36,9 +34,11 @@ class ProductModule:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(255) NOT NULL,
                 description TEXT,
+                category_id INTEGER, FOREIGN KEY (category_id) REFERENCES categories(id)
                 is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES categories(id)
             )
             """
             with engine.connect() as conn:

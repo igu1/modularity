@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, ForeignKey, String, Text
 from modular_system.database.models import DatabaseModel
 
 class OrganizationModel(DatabaseModel):

@@ -39,3 +39,35 @@ class APIViews:
 
     def status_api(self, env, start, mod):
         return self._resp({"system": self.mod.get_system_status()}, start)
+
+    def register_api(self, env, start, mod):
+        try:
+            data = json.loads(env['wsgi.input'].read(int(env.get('CONTENT_LENGTH', 0))))
+            user = self.mod.services['auth_service'].register(data)
+            return self._resp({"success": True, "user": user}, start, '201 Created')
+        except Exception as e:
+            return self._err(str(e), start)
+
+    def login_api(self, env, start, mod):
+        try:
+            data = json.loads(env['wsgi.input'].read(int(env.get('CONTENT_LENGTH', 0))))
+            user = self.mod.services['auth_service'].login(data.get('username') or data.get('email'), data.get('password'))
+            if user:
+                return self._resp({"success": True, "user": user}, start)
+            return self._err("Invalid credentials", start, '401 Unauthorized')
+        except Exception as e:
+            return self._err(str(e), start)
+
+    def refresh_token_api(self, env, start, mod):
+        try:
+            data = json.loads(env['wsgi.input'].read(int(env.get('CONTENT_LENGTH', 0))))
+            refresh_token = data.get('refresh_token')
+            if not refresh_token:
+                return self._err("Refresh token required", start, '400 Bad Request')
+            
+            tokens = self.mod.services['auth_service'].refresh_access_token(refresh_token)
+            if tokens:
+                return self._resp({"success": True, **tokens}, start)
+            return self._err("Invalid or expired refresh token", start, '401 Unauthorized')
+        except Exception as e:
+            return self._err(str(e), start)

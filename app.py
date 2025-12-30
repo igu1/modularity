@@ -6,7 +6,7 @@ from config.settings import get_config
 def main():
     cfg = get_config()
     ms = ModularSystem(asdict(cfg))
-    for m in ['base', 'product']:
+    for m in ['base', 'support']:
         if ms.load_module(m): print(f"✓ {m}")
         else: print(f"✗ {m}"); sys.exit(1)
     

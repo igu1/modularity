@@ -7,11 +7,16 @@ class SystemService:
 
     def get_system_status(self):
         reg = getattr(self.mod.env, '_registry', None)
-        pe = getattr(self.mod.env, '_patch_engine', None)
+        ms = getattr(self.mod.env, '_ms', None)
+        pe = getattr(ms, 'patch_engine', None) if ms else None
+        
+        if not pe:
+            pe = getattr(self.mod.env, 'patch_engine', None) or getattr(self.mod.env, '_patch_engine', None)
+            
         return {
             'modules': list(reg.modules.keys()) if reg else [],
             'routes': len(reg.routes) if reg else 0,
-            'patches': len(pe.applied) if pe else 0,
+            'patches': len(pe.applied) if pe and hasattr(pe, 'applied') else 0,
             'uptime': self._uptime(),
             'mem': self._mem(),
             'py': f"{sys.version_info.major}.{sys.version_info.minor}",

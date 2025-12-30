@@ -16,7 +16,10 @@ class ModularSystem:
         
         self.env = Environment(self.registry)
         self.env.template_engine = self.template_engine
-        self.patch_engine: Optional[PatchEngine] = None
+        self.patch_engine = PatchEngine()
+        self.env.patch_engine = self.patch_engine
+        self.patch_engine.set_logger(self.logger)
+        
         self._load_mods()
         self._setup_exts()
 
@@ -69,8 +72,6 @@ class ModularSystem:
         return [b"Not Found"]
 
     def _setup_exts(self):
-        self.patch_engine = PatchEngine()
-        self.patch_engine.set_logger(self.logger)
         base = os.path.join(os.path.dirname(__file__), '..')
         for d in [os.path.join(base, 'extensions'), os.path.join(base, 'modules')]:
             if not os.path.exists(d): continue
